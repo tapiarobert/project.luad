@@ -1,2 +1,133 @@
-# project.luad
-moneylua
+getgenv()["\83\119\105\109\77\101\116\104\111\100"] = false
+
+task["\115\112\97\119\110"](function()
+    while task["\119\97\105\116"]() do
+        if getgenv()["\83\119\105\109\77\101\116\104\111\100"] then
+            local a = game:GetService("\80\108\97\121\101\114\115")["\76\111\99\97\108\80\108\97\121\101\114"]
+            if a and a["\67\104\97\114\97\99\116\101\114"] and a["\67\104\97\114\97\99\116\101\114"]:FindFirstChild("\72\117\109\97\110\111\105\100") then
+                local b = a["\67\104\97\114\97\99\116\101\114"]["\72\117\109\97\110\111\105\100"]
+                b:ChangeState(Enum["\72\117\109\97\110\111\105\100\83\116\97\116\101\84\121\112\101"]["\70\97\108\108\105\110\103\68\111\119\110"])
+            end
+        end
+    end
+end)
+local player = game.Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+local camera = game.Workspace.CurrentCamera
+local humanoidRootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+local originalCameraType = camera.CameraType
+local originalFieldOfView = camera.FieldOfView
+local originalCameraShake = camera:FindFirstChild("CameraShake")
+local cameraShakeBackup = originalCameraShake and originalCameraShake.Value or nil
+
+local function GetCharacter()
+    return player and player.Character
+end
+
+getgenv().SwimMethod = false
+
+local function enableSwimMethod()
+    getgenv().SwimMethod = true
+    task.wait(1)
+end
+
+local function disableSwimMethod()
+    getgenv().SwimMethod = false
+end
+
+local function SwimBypassTeleport(destinationCFrame)
+    local character = GetCharacter()
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+
+    local HRP = character.HumanoidRootPart
+
+    enableSwimMethod()
+    task.wait(0.25)
+
+    HRP.CFrame = destinationCFrame + Vector3.new(2, 0, 0)
+
+    task.delay(0.25, function()
+        disableSwimMethod()
+    end)
+end
+
+local tool = player.Backpack:FindFirstChild("Ice-Fruit Cupz")
+if tool then
+    player.Character.Humanoid:EquipTool(tool)
+else
+    return
+end
+
+if not player or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+local originalCFrame = player.Character.HumanoidRootPart.CFrame
+
+task.wait(0.5)
+
+local targetCFrame = CFrame.new(28.636776, 286.633575, -341.609802)
+SwimBypassTeleport(targetCFrame)
+
+task.wait(0.5)
+
+local cameraOffset = Vector3.new(0, 5, 5)
+local angleOffset = Vector3.new(0, -1, 0)
+
+camera.CameraType = Enum.CameraType.Scriptable
+
+getgenv().cameraFollowConnection = game:GetService("RunService").Heartbeat:Connect(function()
+    if humanoidRootPart then
+        local characterPos = humanoidRootPart.Position
+        camera.CFrame = CFrame.new(characterPos + cameraOffset + angleOffset, characterPos + Vector3.new(0, 3, 0))
+    end
+end)
+
+getgenv().instantPrompts = true
+
+local iceFruitSellPrompt = workspace:WaitForChild("IceFruit Sell"):FindFirstChildOfClass("ProximityPrompt")
+if iceFruitSellPrompt then
+    iceFruitSellPrompt.HoldDuration = 0
+    iceFruitSellPrompt.MaxActivationDistance = 6
+
+    getgenv().updateConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if getgenv().instantPrompts and iceFruitSellPrompt.Enabled then
+            for _ = 1, 100 do
+                iceFruitSellPrompt:InputHoldBegin()
+                iceFruitSellPrompt:InputHoldEnd()
+            end
+        end
+    end)
+end
+
+task.spawn(function()
+    task.wait(1)
+
+    getgenv().instantPrompts = false
+
+    if getgenv().updateConnection then
+        getgenv().updateConnection:Disconnect()
+        getgenv().updateConnection = nil
+    end
+
+    if iceFruitSellPrompt then
+        iceFruitSellPrompt.HoldDuration = 1
+        iceFruitSellPrompt.MaxActivationDistance = 4
+    end
+
+    enableSwimMethod()
+    task.wait(0.5)
+    SwimBypassTeleport(originalCFrame)
+    task.wait(0.5)
+    disableSwimMethod()
+
+    if getgenv().cameraFollowConnection then
+        getgenv().cameraFollowConnection:Disconnect()
+        getgenv().cameraFollowConnection = nil
+    end
+
+    camera.CameraType = originalCameraType
+    camera.FieldOfView = originalFieldOfView
+
+    if originalCameraShake then
+        originalCameraShake.Value = cameraShakeBackup
+    end
+end)
